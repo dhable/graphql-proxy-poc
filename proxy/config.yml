@@ -1,0 +1,12 @@
+logging:
+  level: INFO
+  loggers:
+    com.danhable: DEBUG
+
+server:
+  type: simple
+  rootPath: /api/
+  applicationContextPath: /
+  connector:
+    type: http
+    port: 8080

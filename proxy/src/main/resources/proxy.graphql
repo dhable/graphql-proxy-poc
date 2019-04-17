@@ -1,0 +1,53 @@
+schema {
+    query: Query
+    mutation: Mutation
+}
+
+type Query {
+    brutool: BruToolQueryAPI
+    keycloak: KeycloakQueryAPI
+}
+
+type Mutation {
+    brutool: BruToolMutationAPI
+}
+
+# -----------------------------------------------------------
+# BruTool Service
+# -----------------------------------------------------------
+type BruToolQueryAPI {
+    units(family: String, system: String): [UnitOfMeasure]
+    recipes(id: String, revision: ID): [Recipe]
+}
+
+type BruToolMutationAPI {
+    createRecipe(name: String!): Recipe
+}
+
+type UnitOfMeasure {
+    family: String
+    system: String
+    key: String
+    singularAbbr: String
+    singularLabel: String
+    pluralAbbr: String
+    pluralLabel: String
+}
+
+type Recipe {
+    id: String
+    name: String
+}
+
+# -----------------------------------------------------------
+# Keycloak Service
+# -----------------------------------------------------------
+type KeycloakQueryAPI {
+    users(email: String): [User]
+}
+
+type User {
+    email: String
+    firstName: String
+    lastName: String
+}
