@@ -1,5 +1,7 @@
-package com.danhable.api;
+package com.danhable;
 
+import com.danhable.api.MultiplexingQueryInvoker;
+import com.danhable.api.GraphQLUtils;
 import com.google.api.graphql.rejoiner.Schema;
 import com.google.api.graphql.rejoiner.SchemaProviderModule;
 import com.google.inject.Guice;
@@ -11,7 +13,7 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.servlet.GraphQLHttpServlet;
 import graphql.servlet.GraphQLQueryInvoker;
-import io.dropwizard.Bundle;
+import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 
@@ -21,18 +23,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class GraphQLBundle implements Bundle {
 
+public class GraphQLBundle implements ConfiguredBundle<ProxyConfiguration> {
 
-    @Override
-    public void initialize(Bootstrap<?> bootstrap) { }
-
-    private GraphQLSchema cloudGraphQLSchema() throws IOException {
+    private GraphQLSchema loadLegacyGraphQLSchema() throws IOException {
         var schemaFiles = Files.find(Paths.get("/Users/danhable/go/src/graphql/schema"),
                                      Integer.MAX_VALUE,
                                      (path, attributes) -> attributes.isRegularFile() && path.toString().endsWith(".graphql"))
                                .map(Path::toFile)
                                .toArray(File[]::new);
+
         var typeDef = GraphQLUtils.loadTypeDefinitions(schemaFiles);
         var wiring = GraphQLUtils.newProxyRuntimeWiring(typeDef);
 
@@ -40,10 +40,13 @@ public class GraphQLBundle implements Bundle {
     }
 
     @Override
-    public void run(Environment environment) {
+    public void initialize(Bootstrap<?> bootstrap) {
+    }
 
+    @Override
+    public void run(ProxyConfiguration configuration, Environment environment) throws Exception {
         try {
-            var legacyServerSchema = cloudGraphQLSchema();
+            var legacyServerSchema = loadLegacyGraphQLSchema();
 
             var rejoinerSchema = Guice.createInjector(new SchemaProviderModule(),
                                                      new OrgClientModule(),
@@ -53,8 +56,8 @@ public class GraphQLBundle implements Bundle {
             var graphQLSchema = GraphQLUtils.stitch(legacyServerSchema, rejoinerSchema);
 
             final GraphQLQueryInvoker queryInvoker
-                    = new CustomQueryInvoker(legacyServerSchema,
-                                             GraphQLQueryInvoker.newBuilder()
+                    = new MultiplexingQueryInvoker(legacyServerSchema,
+                                                   GraphQLQueryInvoker.newBuilder()
                                                                 .build());
 
             final graphql.servlet.GraphQLConfiguration config =

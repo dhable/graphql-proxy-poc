@@ -38,14 +38,14 @@ import static java.util.Objects.nonNull;
 import static org.asynchttpclient.Dsl.*;
 
 
-public class CustomQueryInvoker extends GraphQLQueryInvoker {
-    private static final Logger LOG = LoggerFactory.getLogger(CustomQueryInvoker.class);
+public class MultiplexingQueryInvoker extends GraphQLQueryInvoker {
+    private static final Logger LOG = LoggerFactory.getLogger(MultiplexingQueryInvoker.class);
     private final GraphQLSchema schemaToForward;
     private final GraphQLQueryInvoker forwardingQueryInvoker;
     private final ObjectMapper jsonMapper;
 
 
-    public CustomQueryInvoker(final GraphQLSchema schemaToForward, final GraphQLQueryInvoker forwardingQueryInvoker) {
+    public MultiplexingQueryInvoker(final GraphQLSchema schemaToForward, final GraphQLQueryInvoker forwardingQueryInvoker) {
         super(null, null, null, null, null);
         this.schemaToForward = schemaToForward;
         this.forwardingQueryInvoker = forwardingQueryInvoker;
@@ -54,7 +54,7 @@ public class CustomQueryInvoker extends GraphQLQueryInvoker {
 
 
     private List<Selection> fieldsToProxy(final SelectionSet selections, final GraphQLObjectType forwardOperationType) {
-        // compare only top level fields on query/mutation/subscription
+        // compare only top level fields on query/mutation
         return selections.getSelections()
                          .parallelStream()
                          .filter(val -> {
@@ -105,7 +105,7 @@ public class CustomQueryInvoker extends GraphQLQueryInvoker {
                                   var errors = respContent.get("errors");
                                   if (nonNull(errors)) {
                                       List<GraphQLError> errors2 = ((List<Object>)errors).stream()
-                                                                                         .map(CustomQueryInvoker::newGraphQLError)
+                                                                                         .map(MultiplexingQueryInvoker::newGraphQLError)
                                                                                          .collect(Collectors.toList());
                                       execResultBuilder.addErrors(errors2);
                                   }

@@ -3,7 +3,6 @@ package com.danhable.api;
 import graphql.language.ScalarTypeDefinition;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchema;
-import graphql.schema.GraphQLType;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
@@ -11,10 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import static graphql.Scalars.GraphQLBigDecimal;
@@ -30,7 +26,6 @@ import static graphql.Scalars.GraphQLShort;
 import static graphql.Scalars.GraphQLString;
 
 import static java.util.Map.entry;
-import static java.util.Comparator.*;
 import static graphql.schema.GraphQLObjectType.newObject;
 
 

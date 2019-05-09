@@ -1,6 +1,5 @@
 package com.danhable;
 
-import com.danhable.api.GraphQLBundle;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -14,11 +13,6 @@ public class ProxyApplication extends Application<ProxyConfiguration> {
 
     public static void main(final String[] args) throws Exception {
         new ProxyApplication().run(args);
-    }
-
-    @Override
-    public String getName() {
-        return "Proxy";
     }
 
     @Override
