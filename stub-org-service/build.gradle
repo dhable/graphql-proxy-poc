@@ -9,7 +9,7 @@ repositories {
     mavenCentral()
 }
 
-def grpcVersion = "1.7.0"
+def grpcVersion = "1.9.0"
 def protobufVersion = "3.7.1"
 
 sourceCompatibility = '11'
@@ -17,6 +17,30 @@ targetCompatibility = '11'
 mainClassName = "demo.StubOrgService"
 
 dependencies {
+    /*
+        implementation group: 'io.dropwizard', name: 'dropwizard-core'
+    testImplementation group: 'io.dropwizard', name: 'dropwizard-testing'
+
+    implementation group: 'com.google.guava', name: 'guava'
+
+    implementation group: 'com.graphql-java', name: 'graphql-java'
+
+    implementation group: 'com.graphql-java-kickstart', name: 'graphql-java-servlet'
+
+    implementation(group: 'com.google.api.graphql', name: 'rejoiner') {
+        exclude group: 'com.graphql-java', module: 'graphql-java'
+    }
+
+    implementation group: 'com.google.dagger', name: 'dagger'
+    annotationProcessor group: 'com.google.dagger', name: 'dagger-compiler'
+
+    annotationProcessor group: 'com.google.auto.value', name: 'auto-value'
+
+    runtime group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
+    runtime group: 'com.sun.xml.bind', name: 'jaxb-impl', version: '2.3.0.1'
+    runtime group: 'javax.activation', name: 'activation', version: '1.1.1'
+    
+     */
     implementation "io.grpc:grpc-protobuf:${grpcVersion}"
     implementation "io.grpc:grpc-stub:${grpcVersion}"
     compileOnly "javax.annotation:javax.annotation-api:1.2"

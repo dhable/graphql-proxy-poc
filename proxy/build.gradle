@@ -20,23 +20,34 @@ applicationDefaultJvmArgs = ['-agentlib:jdwp=transport=dt_socket,server=y,suspen
 
 dependencies {
     implementation 'io.dropwizard:dropwizard-core:1.3.5'
-    implementation 'com.graphql-java:graphql-java:11.0'
+    implementation 'com.graphql-java:graphql-java:12.0'
     implementation 'com.graphql-java-kickstart:graphql-java-servlet:7.3.3'
     implementation('com.google.api.graphql:rejoiner:0.2.0')
 
-    implementation 'io.netty:netty-codec-http2:4.1.34.Final'
-    implementation 'io.netty:netty-handler-proxy:4.1.34.Final'
+    implementation 'io.netty:netty-codec-http2:4.1.33.Final'
+    implementation 'io.netty:netty-handler-proxy:4.1.33.Final'
+
+    implementation 'org.asynchttpclient:async-http-client:2.8.1'
 
     implementation name: 'stubby-1.0.0'
     implementation "io.grpc:grpc-protobuf:${grpcVersion}"
-//    implementation "io.grpc:grpc-stub:${grpcVersion}"
     compile "com.google.guava:guava:27.1-jre"
+
 
     implementation 'com.sun.activation:javax.activation:1.2.0'  // java 11
     implementation 'com.sun.xml.bind:jaxb-impl:2.3.2'           // java 11
     implementation 'com.sun.xml.ws:jaxws-ri:2.3.2'              // java 11
+
+    testImplementation ('org.junit.jupiter:junit-jupiter:5.4.2')
+
 }
 
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
 /*
 
  */

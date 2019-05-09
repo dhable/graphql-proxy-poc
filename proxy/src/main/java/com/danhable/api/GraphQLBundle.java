@@ -1,102 +1,71 @@
 package com.danhable.api;
 
-import com.danhable.db.SidecarClient;
-import com.danhable.db.PassthruDataFetcher;
 import com.google.api.graphql.rejoiner.Schema;
 import com.google.api.graphql.rejoiner.SchemaProviderModule;
 import com.google.inject.Guice;
 import com.google.inject.Key;
 import demo.services.org.OrgClientModule;
 import demo.services.org.OrgQuerySchemaModule;
-import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLSchema;
 
+import graphql.schema.idl.SchemaGenerator;
 import graphql.servlet.GraphQLHttpServlet;
 import graphql.servlet.GraphQLQueryInvoker;
 import io.dropwizard.Bundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Objects;
-
-import static graphql.Scalars.GraphQLString;
-import static graphql.schema.GraphQLFieldDefinition.newFieldDefinition;
-import static graphql.schema.GraphQLObjectType.newObject;
-import static graphql.schema.GraphQLTypeReference.typeRef;
-
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class GraphQLBundle implements Bundle {
-    private static final Logger LOG = LoggerFactory.getLogger(GraphQLBundle.class);
 
-    private static BufferedReader getResourceAsReader(final String name) {
-        LOG.info("Loading GraphQL schema file: {}", name);
-
-        var loader = Thread.currentThread().getContextClassLoader();
-        var in = loader.getResourceAsStream(name);
-
-        Objects.requireNonNull(in, String.format("resource not found: %s", name));
-
-        return new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-    }
 
     @Override
-    public void initialize(Bootstrap<?> bootstrap) {
+    public void initialize(Bootstrap<?> bootstrap) { }
+
+    private GraphQLSchema cloudGraphQLSchema() throws IOException {
+        var schemaFiles = Files.find(Paths.get("/Users/danhable/go/src/graphql/schema"),
+                                     Integer.MAX_VALUE,
+                                     (path, attributes) -> attributes.isRegularFile() && path.toString().endsWith(".graphql"))
+                               .map(Path::toFile)
+                               .toArray(File[]::new);
+        var typeDef = GraphQLUtils.loadTypeDefinitions(schemaFiles);
+        var wiring = GraphQLUtils.newProxyRuntimeWiring(typeDef);
+
+        return new SchemaGenerator().makeExecutableSchema(typeDef, wiring);
     }
 
     @Override
     public void run(Environment environment) {
-//        var schemaParser = new SchemaParser();
-//        var typeDefinitionRegistry = schemaParser.parse(getResourceAsReader("proxy.graphql"));
-//        var wiring = buildRuntimeWiring();
-//
-//        var schemaGenerator = new SchemaGenerator();
-//        var graphQLSchema = schemaGenerator.makeExecutableSchema(typeDefinitionRegistry, wiring);
 
-        /////////////////////////////////////////////////////////////////////////////
+        try {
+            var legacyServerSchema = cloudGraphQLSchema();
 
-        var graphQLSchema = Guice.createInjector(new SchemaProviderModule(),
-                                                 new OrgClientModule(),
-                                                 new OrgQuerySchemaModule())
-                                 .getInstance(Key.get(GraphQLSchema.class, Schema.class));
+            var rejoinerSchema = Guice.createInjector(new SchemaProviderModule(),
+                                                     new OrgClientModule(),
+                                                     new OrgQuerySchemaModule())
+                                     .getInstance(Key.get(GraphQLSchema.class, Schema.class));
 
+            var graphQLSchema = GraphQLUtils.stitch(legacyServerSchema, rejoinerSchema);
 
-        graphQLSchema = GraphQLSchema.newSchema(graphQLSchema)
-                                     .additionalType(newObject().name("DatabaseType")
-                                                                .fields(
-                                                                    List.of(
-                                                                            newFieldDefinition().name("guid").type(GraphQLString).build(),
-                                                                            newFieldDefinition().name("owner").type(GraphQLString).build(),
-                                                                            newFieldDefinition().name("region").type(GraphQLString).build()))
-                                                                .build())
-                                     .additionalType(newObject().name("CaaSType")
-                                                                .field(newFieldDefinition().name("databases")
-                                                                                           .type(GraphQLList.list(typeRef("DatabaseType"))))
-                                                                .build())
-                                     .query(newObject(graphQLSchema.getQueryType()).field(newFieldDefinition().name("caas")
-                                                                                                              .type(typeRef("CaaSType"))
-                                                                                                              .dataFetcher(new PassthruDataFetcher(new SidecarClient()))))
-                                     .build();
+            final GraphQLQueryInvoker queryInvoker
+                    = new CustomQueryInvoker(legacyServerSchema,
+                                             GraphQLQueryInvoker.newBuilder()
+                                                                .build());
 
+            final graphql.servlet.GraphQLConfiguration config =
+                    graphql.servlet.GraphQLConfiguration.with(graphQLSchema).with(queryInvoker).build();
 
-        /////////////////////////////////////////////////////////////////////////////
-        final GraphQLQueryInvoker queryInvoker =
-                GraphQLQueryInvoker.newBuilder()
-//                    .withPreparsedDocumentProvider(provider)
-//                    .withInstrumentation(factory.getInstrumentations())
-                                   .build();
+            var servlet = GraphQLHttpServlet.with(config);
 
-        final graphql.servlet.GraphQLConfiguration config =
-                graphql.servlet.GraphQLConfiguration.with(graphQLSchema).with(queryInvoker).build();
+            environment.servlets().addServlet("graphql", servlet).addMapping("/graphql", "/schema.json");
 
-        var servlet = GraphQLHttpServlet.with(config);
-
-        environment.servlets().addServlet("graphql", servlet).addMapping("/graphql", "/schema.json");
-
+        } catch(IOException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }
